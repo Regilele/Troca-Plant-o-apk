@@ -8,9 +8,9 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { api, ApiError } from '../lib/api';
+import { api, ApiError, getSessionToken, setSessionToken } from '../lib/api';
 import { useToast } from '../components/ui';
-import { applyUpdate, registerServiceWorker, showShiftNotification } from '../lib/pwa';
+import { applyUpdate, clearOfflineData, registerServiceWorker, showShiftNotification } from '../lib/pwa';
 import { monthKey, todayISO } from '../lib/calendar';
 import type {
   AuditEntry,
@@ -170,6 +170,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const data = await api.get<Partial<Bootstrap> & { user: User | null }>('/api/bootstrap');
         if (!alive) return;
+        // token salvo que não vale mais (expirado/revogado) é descartado
+        if (!data.user && getSessionToken()) setSessionToken(null);
         setBoot(data.user ? normalizeBoot(data) : null);
         setUser(data.user || null);
         // Mês inicial: mês do próximo plantão; se a escala estiver no passado,
@@ -195,20 +197,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleAuthSuccess = useCallback(
-    async (data: { user: User }) => {
+    async (data: { user: User; sessionToken?: string }) => {
+      // Guarda o token antes de qualquer chamada: é ele que sustenta a sessão
+      // quando o navegador bloqueia cookies (prévia em iframe / Safari).
+      if (data.sessionToken) setSessionToken(data.sessionToken);
       setUser(data.user);
+      // evita servir em offline dados de outra sessão
+      await clearOfflineData();
       const bootData = await refresh();
-      // Abre no mês com escala (dados migrantes do APK) em vez do mês corrente vazio.
-      if (bootData?.defaultMonth) setMonth(bootData.defaultMonth);
-      const container = document.querySelector('.content-scroll');
-      container?.scrollTo?.({ top: 0 });
+      if (bootData?.user) {
+        // Abre no mês com escala (dados migrantes do APK) em vez do mês corrente vazio.
+        if (bootData.defaultMonth) setMonth(bootData.defaultMonth);
+        setError(null);
+        const container = document.querySelector('.content-scroll');
+        container?.scrollTo?.({ top: 0 });
+        return;
+      }
+      // Login aceito, mas a sessão não se manteve: avisa em vez de voltar mudo
+      // para a tela de login.
+      setSessionToken(null);
+      setUser(null);
+      setBoot(null);
+      throw new ApiError(
+        'O acesso foi validado, mas a sessão não pôde ser mantida neste navegador. Recarregue a página e tente novamente — se o problema continuar, use outro navegador ou saia do modo privado.',
+        { code: 'session_lost', status: 401 },
+      );
     },
     [refresh],
   );
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const data = await api.post<{ user: User }>('/api/auth/login', { email, password });
+      const data = await api.post<{ user: User; sessionToken?: string }>('/api/auth/login', { email, password });
       await handleAuthSuccess(data);
       toast('success', `Bem-vindo(a), ${data.user.name.split(' ')[0]}!`, 'Sua escala foi carregada.');
       return data.user;
@@ -225,14 +245,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const loginGuest = useCallback(async () => {
-    await api.post('/api/auth/guest');
-    const bootData = await refresh();
-    if (bootData?.defaultMonth) setMonth(bootData.defaultMonth);
+    const data = await api.post<{ user: User; sessionToken?: string }>('/api/auth/guest');
+    await handleAuthSuccess(data);
     toast('info', 'Acesso de convidado', 'Você pode consultar a escala, mas não editar.');
-  }, [refresh, toast]);
+  }, [handleAuthSuccess, toast]);
 
   const logout = useCallback(async () => {
-    await api.post('/api/auth/logout');
+    try {
+      await api.post('/api/auth/logout');
+    } finally {
+      setSessionToken(null);
+      await clearOfflineData();
+    }
     setBoot(null);
     setUser(null);
     toast('info', 'Sessão encerrada', 'Até logo!');

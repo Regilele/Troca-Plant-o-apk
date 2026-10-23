@@ -152,6 +152,35 @@ Arquivos principais: `server/{domain,db,repo,auth,integrations,reports,index}.js
 7. **Ajustes:** instale a PWA, alterne o tema, exporte o backup.
 8. No celular (ou DevTools 390 px): navegação inferior, agenda e nenhum corte.
 
+## 5.1 Correção — “login aprovado, mas a tela de login não sai”
+
+**Sintoma:** o acesso era aceito, mas o app voltava para a tela de login.
+
+**Causa:** a sessão existia **apenas em cookie** (`SameSite=Lax`, `HttpOnly`).
+Em prévia embutida (iframe de outra origem), com cookies de terceiros
+bloqueados, em modo privado ou atrás de proxy que descarta `Set-Cookie`, o
+`POST /api/auth/login` respondia 200 e o `GET /api/bootstrap` seguinte chegava
+anônimo — o app então voltava ao login, sem explicar nada.
+
+**Correção aplicada:**
+- O login (e o acesso de convidado) agora devolve um `sessionToken`; o cliente
+  guarda no aparelho e envia em `Authorization: Bearer`, com cópia em memória
+  para quando o `localStorage` está bloqueado.
+- O servidor aceita token **ou** cookie (`sessionTokenFromRequest`), e o logout
+  revoga o token de verdade.
+- Cookie continua sendo gravado, agora também como `Partitioned` (CHIPS) em HTTPS.
+- Se, mesmo assim, a sessão não se mantiver, aparece uma mensagem clara em vez
+  de voltar silenciosamente ao formulário.
+- Se o usuário existe mas os dados não chegam, há tela de “tentar novamente”
+  (antes ficava carregando para sempre).
+- Token inválido é descartado automaticamente e o login aparece normalmente.
+- Service worker atualizado (v2.0.1) e o cache de dados passa a ser limpo ao
+  entrar/sair, para nunca servir escala de outra sessão em modo offline.
+
+**Verificado em:** navegador sem nenhum cookie, app dentro de iframe de outra
+origem com cookies de terceiros bloqueados, e após reload. Testes: 43/43 na
+API e 14/14 no navegador (incluindo “login continua logado mesmo sem cookies”).
+
 ## 6. Observações honestas
 
 - A base migrada é de **junho/2026**; “hoje” é outubro/2026. O app abre no mês

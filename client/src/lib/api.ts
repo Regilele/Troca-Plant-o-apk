@@ -14,6 +14,33 @@ export class ApiError extends Error {
   }
 }
 
+const TOKEN_KEY = 'rgsa.session';
+
+/**
+ * Cópia em memória: em iframes restritos e no modo privado o localStorage
+ * pode lançar exceção, mas a sessão ainda precisa valer nesta aba.
+ */
+let memoryToken: string | null = null;
+
+/** Token de sessão persistido no aparelho (funciona sem cookies). */
+export function getSessionToken(): string | null {
+  try {
+    return window.localStorage.getItem(TOKEN_KEY) ?? memoryToken;
+  } catch {
+    return memoryToken;
+  }
+}
+
+export function setSessionToken(token: string | null) {
+  memoryToken = token;
+  try {
+    if (token) window.localStorage.setItem(TOKEN_KEY, token);
+    else window.localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* storage indisponível: a sessão vale só nesta aba */
+  }
+}
+
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: unknown;
@@ -23,6 +50,8 @@ type RequestOptions = {
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = { 'x-requested-with': 'rgsa-plantao' };
   if (options.body !== undefined) headers['content-type'] = 'application/json';
+  const token = getSessionToken();
+  if (token) headers.authorization = `Bearer ${token}`;
 
   let response: Response;
   try {

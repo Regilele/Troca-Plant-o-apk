@@ -103,7 +103,9 @@ derivados um do outro; em branco o pagamento aparece como **“a definir”**.
   recuperado do APK (4 plantonistas, 6 plantões, 2 folgas) e o banco é semeado a
   partir dele de forma idempotente. O seed nunca é sobrescrito pela aplicação.
 - Exclusões são lógicas (`deleted_at`), com restauração e registro em auditoria.
-- Senhas com `scrypt` + salt; sessões opacas em cookie `HttpOnly`, `SameSite=Lax`.
+- Senhas com `scrypt` + salt; sessões opacas em cookie `HttpOnly`/`SameSite=Lax`
+  **e** em token `Authorization: Bearer` (necessário em prévia embutida, modo
+  privado ou quando o navegador bloqueia cookies de terceiros).
 - Proteção CSRF por cabeçalho `x-requested-with: rgsa-plantao`.
 - Rate limit no login, mensagens de erro genéricas para credenciais.
 - Convidado não escreve (`guest_readonly`); papéis e status são verificados no servidor.

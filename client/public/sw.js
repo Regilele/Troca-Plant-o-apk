@@ -1,5 +1,5 @@
 /* RG&SA PLANTÃO — Service Worker (PWA real, sem dependências) */
-const VERSION = 'rgsa-plantao-v2.0.0';
+const VERSION = 'rgsa-plantao-v2.0.1';
 const SHELL_CACHE = `${VERSION}-shell`;
 const STATIC_CACHE = `${VERSION}-static`;
 const DATA_CACHE = `${VERSION}-data`;
@@ -44,6 +44,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('message', (event) => {
   if (event.data === 'SKIP_WAITING' || event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  // Ao entrar/sair, os dados em cache pertencem a outra sessão: apaga.
+  if (event.data?.type === 'CLEAR_DATA') {
+    event.waitUntil(caches.delete(DATA_CACHE));
+  }
 });
 
 function isCacheableApi(url) {

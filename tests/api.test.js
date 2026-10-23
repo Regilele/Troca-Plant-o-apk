@@ -329,6 +329,43 @@ test('importação valida o formato antes de tocar no banco', async () => {
   assert.equal(bad.status, 400);
 });
 
+test('sessão funciona por token, sem cookie (prévia em iframe)', async () => {
+  const res = await login('admin@rgsa.plantao', 'Plantao@2026');
+  assert.equal(res.status, 200);
+  assert.ok(res.data.sessionToken, 'login devolve sessionToken');
+
+  // sem cookie algum: só o cabeçalho Authorization
+  const boot = await call('GET', '/api/bootstrap', {
+    headers: { authorization: `Bearer ${res.data.sessionToken}` },
+  });
+  assert.equal(boot.status, 200);
+  assert.equal(boot.data.user.email, 'admin@rgsa.plantao');
+  assert.equal(boot.data.shifts.length >= 6, true);
+
+  // token inválido continua sendo recusado
+  const bogus = await call('GET', '/api/bootstrap', { headers: { authorization: 'Bearer nao-existe' } });
+  assert.equal(bogus.data.user, null);
+
+  const out = await call('POST', '/api/auth/logout', {
+    headers: { authorization: `Bearer ${res.data.sessionToken}` },
+  });
+  assert.equal(out.status, 200);
+  const after = await call('GET', '/api/bootstrap', {
+    headers: { authorization: `Bearer ${res.data.sessionToken}` },
+  });
+  assert.equal(after.data.user, null, 'logout revoga o token');
+});
+
+test('convidado também recebe token utilizável', async () => {
+  const guest = await call('POST', '/api/auth/guest');
+  assert.ok(guest.data.sessionToken);
+  const boot = await call('GET', '/api/bootstrap', {
+    headers: { authorization: `Bearer ${guest.data.sessionToken}` },
+  });
+  assert.equal(boot.data.user.isGuest, true);
+  assert.equal(boot.data.permissions.canEdit, false);
+});
+
 test('logout invalida a sessão', async () => {
   const res = await call('POST', '/api/auth/logout', { cookie: memberCookie });
   assert.equal(res.status, 200);

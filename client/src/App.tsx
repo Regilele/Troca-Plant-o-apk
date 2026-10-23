@@ -130,7 +130,29 @@ function Root() {
     return <LoginPage />;
   }
 
-  if (!boot) return <LoadingScreen />;
+  if (!boot) {
+    // Sessão válida mas dados ainda não chegaram: se já não está carregando,
+    // oferece recarregar em vez de deixar a tela de carregamento para sempre.
+    if (loading) return <LoadingScreen />;
+    return (
+      <div className="loading-screen">
+        <div className="loading-inner">
+          <div className="loading-mark" style={{ background: 'linear-gradient(140deg, #b42318, #7a1d13)' }}>
+            <AlertTriangle size={26} />
+          </div>
+          <div>
+            <h2>{t('Não foi possível abrir a escala', 'Could not open the roster')}</h2>
+            <p className="muted small" style={{ maxWidth: 380, marginTop: 8 }}>
+              {error || t('A sessão foi aceita, mas os dados não chegaram. Verifique a conexão.', 'Your session was accepted but the data did not arrive. Check your connection.')}
+            </p>
+          </div>
+          <button className="btn btn-primary" onClick={() => void refresh()}>
+            <RefreshCw /> {t('Tentar novamente', 'Try again')}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const openShift = (shift: Shift) => {
     setDay(null);

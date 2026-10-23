@@ -49,6 +49,12 @@ async function shot(page, name, options = {}) {
 async function login(page, email = 'admin@rgsa.plantao', password = 'Plantao@2026') {
   await page.evaluate(() => localStorage.setItem('rgsa.lang', 'pt'));
   await page.goto(BASE, { waitUntil: 'networkidle0' });
+  // sessão por token: limpar só cookie não garante a tela de login
+  await page.evaluate(() => {
+    localStorage.removeItem('rgsa.session');
+    localStorage.setItem('rgsa.lang', 'pt');
+  });
+  await page.reload({ waitUntil: 'networkidle0' });
   await page.waitForSelector('#auth-email');
   await page.type('#auth-email', email);
   await page.type('#auth-password', password);

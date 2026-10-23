@@ -121,6 +121,17 @@ export function registerServiceWorker() {
   return true;
 }
 
+/** Descarta dados em cache que pertenciam a outra sessão (login/logout). */
+export async function clearOfflineData() {
+  try {
+    const registration = await navigator.serviceWorker?.getRegistration();
+    registration?.active?.postMessage({ type: 'CLEAR_DATA' });
+    if ('caches' in window) await caches.delete('rgsa-plantao-v2.0.1-data');
+  } catch {
+    /* sem service worker ou sem cache: nada a limpar */
+  }
+}
+
 export async function applyUpdate(registration?: ServiceWorkerRegistration | null) {
   const reg = registration || (await navigator.serviceWorker.getRegistration());
   reg?.waiting?.postMessage('SKIP_WAITING');

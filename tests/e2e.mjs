@@ -106,9 +106,13 @@ async function clearSession() {
 }
 
 async function login(email, password) {
+  // A sessão agora também vive em token: limpar cookie não basta para
+  // garantir que o formulário de login apareça.
   const client = await page.createCDPSession();
   await client.send('Network.clearBrowserCookies');
   await page.goto(BASE, { waitUntil: 'networkidle0' });
+  await page.evaluate(() => localStorage.removeItem('rgsa.session'));
+  await page.reload({ waitUntil: 'networkidle0' });
   await page.waitForSelector('#auth-email', { timeout: 15000 });
   await page.type('#auth-email', email);
   await page.type('#auth-password', password);
@@ -412,14 +416,43 @@ try {
     assert(/Relatórios/.test(text), 'página de relatórios aberta');
     assert(/CSV/.test(text) && /PDF/i.test(text), 'ações de CSV e PDF presentes');
     const res = await page.evaluate(async () => {
+      const token = localStorage.getItem('rgsa.session');
       const response = await fetch('/api/reports/monthly?month=2026-06', {
-        headers: { 'x-requested-with': 'rgsa-plantao' },
+        headers: {
+          'x-requested-with': 'rgsa-plantao',
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
       });
       return { status: response.status, body: await response.json() };
     });
     assert(res.status === 200, `API de relatório ${res.status}`);
     assert(/RG&SA/.test(res.body.text), 'texto do relatório inclui a marca');
     return 'PDF no cliente + relatório da API';
+  });
+
+  /* 10b. Sessão sem cookies (prévia em iframe) ----------------------- */
+  await step('login continua logado mesmo sem cookies', async () => {
+    await login('admin@rgsa.plantao', 'Plantao@2026');
+    const token = await page.evaluate(() => localStorage.getItem('rgsa.session'));
+    assert(token, 'token de sessão salvo no aparelho');
+
+    const cdp = await page.createCDPSession();
+    await cdp.send('Network.clearBrowserCookies');
+    await page.reload({ waitUntil: 'networkidle0' });
+    await waitFor(async () => page.$('.side-nav'), { label: 'shell após apagar cookies' });
+    const cookies = (await cdp.send('Network.getAllCookies')).cookies.length;
+    assert(cookies === 0, `cookies restantes: ${cookies}`);
+    return 'sessão mantida só pelo token';
+  });
+
+  /* 10c. Sessão inválida é descartada -------------------------------- */
+  await step('token inválido volta para o login sem travar', async () => {
+    await page.evaluate(() => localStorage.setItem('rgsa.session', 'token-invalido'));
+    await page.reload({ waitUntil: 'networkidle0' });
+    await waitFor(async () => page.$('#auth-email'), { label: 'tela de login' });
+    const cleared = await page.evaluate(() => localStorage.getItem('rgsa.session'));
+    assert(!cleared, 'token inválido removido do aparelho');
+    return 'login exibido e token limpo';
   });
 
   /* 11. Sem erros de console ---------------------------------------- */

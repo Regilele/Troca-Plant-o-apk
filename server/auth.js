@@ -18,6 +18,18 @@ export function parseCookies(req) {
   return out;
 }
 
+/**
+ * Token da sessão: cabeçalho Authorization primeiro, cookie como fallback.
+ * O cabeçalho é o caminho confiável em prévias embutidas (iframe), onde
+ * navegadores bloqueiam cookies de terceiros e proxies podem não repassar
+ * Set-Cookie — cenário em que o login "dava certo" mas a sessão se perdia.
+ */
+export function sessionTokenFromRequest(req) {
+  const header = String(req.headers?.authorization || '');
+  if (/^bearer\s+/i.test(header)) return header.replace(/^bearer\s+/i, '').trim() || null;
+  return parseCookies(req)[COOKIE_NAME] || null;
+}
+
 function cookieOptions(req) {
   const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
   return { httpOnly: true, sameSite: 'lax', secure, path: '/', maxAge: SESSION_DAYS * 24 * 60 * 60 * 1000 };
@@ -33,6 +45,8 @@ export function setSessionCookie(req, res, token) {
     'SameSite=Lax',
   ];
   if (opts.secure) parts.push('Secure');
+  // CHIPS: mantém a sessão funcionando quando o app roda embutido por HTTPS.
+  if (opts.secure) parts.push('Partitioned');
   res.setHeader('Set-Cookie', parts.join('; '));
 }
 
@@ -54,12 +68,12 @@ export function createSession(req, { userId = null, role = 'guest', userAgent = 
 }
 
 export function destroySession(req) {
-  const token = parseCookies(req)[COOKIE_NAME];
+  const token = sessionTokenFromRequest(req);
   if (token) db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(sha256(token));
 }
 
 export function readSession(req) {
-  const token = parseCookies(req)[COOKIE_NAME];
+  const token = sessionTokenFromRequest(req);
   if (!token) return null;
   const row = db
     .prepare('SELECT id, user_id AS userId, role, expires_at AS expiresAt FROM sessions WHERE token_hash = ?')

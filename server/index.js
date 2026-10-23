@@ -196,7 +196,13 @@ api.post('/auth/login', rateLimitLogin, (req, res) => {
   setSessionCookie(req, res, token);
   db.prepare('UPDATE users SET last_login_at = ?, updated_at = ? WHERE id = ?').run(nowISO(), nowISO(), user.id);
   audit({ actorId: user.id, actorEmail: user.email, action: 'login', entity: 'user', entityId: user.id });
-  res.json({ user: publicUser(getUserById(user.id)) });
+  res.json({
+    user: publicUser(getUserById(user.id)),
+    // Token explícito: funciona mesmo quando o navegador bloqueia cookies
+    // (prévia embutida em iframe, Safari/ITP, proxy sem Set-Cookie).
+    sessionToken: token,
+    expiresAt: new Date(Date.now() + 14 * 86400000).toISOString(),
+  });
 });
 
 api.post('/auth/signup', rateLimitLogin, (req, res) => {
@@ -246,7 +252,11 @@ api.post('/auth/guest', (req, res) => {
   const { token } = createSession(req, { role: 'guest', userAgent: req.get('user-agent') });
   setSessionCookie(req, res, token);
   audit({ action: 'guest_login', entity: 'session' });
-  res.json({ user: publicUser({ id: null, name: 'Plantonista Convidado', role: 'guest', status: 'approved', isGuest: true }) });
+  res.json({
+    user: publicUser({ id: null, name: 'Plantonista Convidado', role: 'guest', status: 'approved', isGuest: true }),
+    sessionToken: token,
+    expiresAt: new Date(Date.now() + 14 * 86400000).toISOString(),
+  });
 });
 
 api.post('/auth/logout', (req, res) => {
