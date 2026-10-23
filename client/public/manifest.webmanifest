@@ -1,0 +1,57 @@
+{
+  "id": "/",
+  "name": "RG&SA PLANTÃO — Escala e trocas",
+  "short_name": "RG&SA PLANTÃO",
+  "description": "Escala integrada de plantões, trocas, folgas e pagamentos do time RG&SA PLANTÃO.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#04262b",
+  "theme_color": "#04262b",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["medical", "productivity", "business"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Escala do mês",
+      "short_name": "Escala",
+      "url": "/?tab=escala",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Minhas folgas",
+      "short_name": "Folgas",
+      "url": "/?tab=folgas",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Relatórios",
+      "short_name": "Relatórios",
+      "url": "/?tab=relatorios",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

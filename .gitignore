@@ -1,0 +1,12 @@
+node_modules/
+client/dist/
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/backups/
+.env
+.env.local
+.DS_Store
+*.log
+tests/tmp/
+tests/screenshots/

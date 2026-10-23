@@ -1,0 +1,27 @@
+{
+  "source": "trocaplantao.apk",
+  "package": "com.aistudio.shiftexchange.kltxpqc",
+  "appName": "RG&SA PLANTÃO",
+  "versionName": "1.0",
+  "versionCode": 1,
+  "extractedAt": "2026-10-23",
+  "extractionNotes": "Dados recuperados do APK original (Room/SQLite: tabelas collaborators, shifts, off_days). Os registros abaixo são exatamente os dados semeados por ShiftRepositoryImpl.populateInitialData(). O app original NÃO possuía campo de data de pagamento; o campo paymentDate foi criado nesta versão e fica nulo (não informado) para os registros legados, preservando a integridade dos dados.",
+  "collaborators": [
+    { "legacyId": 1, "name": "Reginaldo", "colorHex": "bg-indigo-600", "avatarChar": "R" },
+    { "legacyId": 2, "name": "Agenor", "colorHex": "bg-emerald-600", "avatarChar": "A" },
+    { "legacyId": 3, "name": "Juliana", "colorHex": "bg-purple-600", "avatarChar": "J" },
+    { "legacyId": 4, "name": "Marcos", "colorHex": "bg-amber-600", "avatarChar": "M" }
+  ],
+  "shifts": [
+    { "legacyId": 1, "date": "2026-06-03", "onShift": "Agenor", "swapForDate": "2026-06-04", "atHome": "-x-", "period": "Diurno (12h)", "paymentDate": null },
+    { "legacyId": 2, "date": "2026-06-07", "onShift": "Agenor", "swapForDate": "2026-06-14", "atHome": "Agenor", "period": "Diurno (12h)", "paymentDate": null },
+    { "legacyId": 3, "date": "2026-06-21", "onShift": "Agenor", "swapForDate": "2026-06-28", "atHome": "Agenor", "period": "Diurno (12h)", "paymentDate": null },
+    { "legacyId": 4, "date": "2026-06-04", "onShift": "Reginaldo", "swapForDate": "2026-06-03", "atHome": "-x-", "period": "Diurno (12h)", "paymentDate": null },
+    { "legacyId": 5, "date": "2026-06-14", "onShift": "Reginaldo", "swapForDate": "2026-06-07", "atHome": "Reginaldo", "period": "Diurno (12h)", "paymentDate": null },
+    { "legacyId": 6, "date": "2026-06-28", "onShift": "Reginaldo", "swapForDate": "2026-06-21", "atHome": "Reginaldo", "period": "Diurno (12h)", "paymentDate": null }
+  ],
+  "offDays": [
+    { "legacyId": 1, "date": "2026-06-13", "name": "Agenor", "type": "mensal" },
+    { "legacyId": 2, "date": "2026-06-20", "name": "Reginaldo", "type": "mensal" }
+  ]
+}
